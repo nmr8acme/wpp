@@ -66,6 +66,8 @@ namespace WPP {
         private:
     };
 
+    typedef std::function<void(Request *, Response *)> Callback;
+    
     class Exception : public std::exception {
         public:
             Exception() : pMessage("") {}
@@ -276,7 +278,7 @@ namespace WPP {
     struct Route {
         regex path;
         string method;
-        void (*callback)(Request*, Response*);
+        Callback callback;
         string params;
     };
 
@@ -284,9 +286,9 @@ namespace WPP {
 
     class Server {
         public:
-            void get(regex, void (*callback)(Request*, Response*));
-            void post(regex, void (*callback)(Request*, Response*));
-            void all(regex, void (*callback)(Request*, Response*));
+            void get(regex, Callback);
+            void post(regex, Callback);
+            void all(regex, Callback);
             void get(regex, string);
             void post(regex, string);
             void all(regex, string);
@@ -390,7 +392,7 @@ namespace WPP {
         }
     }
 
-    void Server::get(regex path, void (*callback)(Request*, Response*)) {
+    void Server::get(regex path, Callback callback) {
         Route r = {
              path,
              "GET",
@@ -400,7 +402,7 @@ namespace WPP {
         ROUTES.push_back(r);
     }
 
-    void Server::post(regex path, void (*callback)(Request*, Response*)) {
+    void Server::post(regex path, Callback callback) {
         Route r = {
              path,
              "POST",
@@ -410,7 +412,7 @@ namespace WPP {
         ROUTES.push_back(r);
     }
 
-    void Server::all(regex path, void (*callback)(Request*, Response*)) {
+    void Server::all(regex path, Callback callback) {
         Route r = {
              path,
              "ALL",
