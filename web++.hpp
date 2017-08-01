@@ -10,6 +10,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <regex>
 
 #define SERVER_NAME "Web++"
 #define SERVER_VERSION "1.0.1"
@@ -273,7 +274,7 @@ namespace WPP {
     }
 
     struct Route {
-        string path;
+        regex path;
         string method;
         void (*callback)(Request*, Response*);
         string params;
@@ -283,12 +284,12 @@ namespace WPP {
 
     class Server {
         public:
-            void get(string, void (*callback)(Request*, Response*));
-            void post(string, void (*callback)(Request*, Response*));
-            void all(string, void (*callback)(Request*, Response*));
-            void get(string, string);
-            void post(string, string);
-            void all(string, string);
+            void get(regex, void (*callback)(Request*, Response*));
+            void post(regex, void (*callback)(Request*, Response*));
+            void all(regex, void (*callback)(Request*, Response*));
+            void get(regex, string);
+            void post(regex, string);
+            void all(regex, string);
             bool start(int, string);
             bool start(int);
             bool start();
@@ -389,7 +390,7 @@ namespace WPP {
         }
     }
 
-    void Server::get(string path, void (*callback)(Request*, Response*)) {
+    void Server::get(regex path, void (*callback)(Request*, Response*)) {
         Route r = {
              path,
              "GET",
@@ -399,7 +400,7 @@ namespace WPP {
         ROUTES.push_back(r);
     }
 
-    void Server::post(string path, void (*callback)(Request*, Response*)) {
+    void Server::post(regex path, void (*callback)(Request*, Response*)) {
         Route r = {
              path,
              "POST",
@@ -409,7 +410,7 @@ namespace WPP {
         ROUTES.push_back(r);
     }
 
-    void Server::all(string path, void (*callback)(Request*, Response*)) {
+    void Server::all(regex path, void (*callback)(Request*, Response*)) {
         Route r = {
              path,
              "ALL",
@@ -419,7 +420,7 @@ namespace WPP {
         ROUTES.push_back(r);
     }
 
-    void Server::get(string path, string loc) {
+    void Server::get(regex path, string loc) {
         Route r = {
              path,
              "GET",
@@ -430,7 +431,7 @@ namespace WPP {
         ROUTES.push_back(r);
     }
 
-    void Server::post(string path, string loc) {
+    void Server::post(regex path, string loc) {
         Route r = {
              path,
              "POST",
@@ -441,7 +442,7 @@ namespace WPP {
         ROUTES.push_back(r);
     }
 
-    void Server::all(string path, string loc) {
+    void Server::all(regex path, string loc) {
         Route r = {
              path,
              "ALL",
@@ -454,7 +455,7 @@ namespace WPP {
 
     bool Server::match_route(Request* req, Response* res) {
         for (vector<Route>::size_type i = 0; i < ROUTES.size(); i++) {
-            if(ROUTES[i].path == req->path && (ROUTES[i].method == req->method || ROUTES[i].method == "ALL")) {
+            if(regex_match(req->path, ROUTES[i].path) && (ROUTES[i].method == req->method || ROUTES[i].method == "ALL")) {
                 req->params = ROUTES[i].params;
 
                 ROUTES[i].callback(req, res);
