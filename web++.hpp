@@ -497,6 +497,13 @@ namespace WPP {
         while(true) {
             newsc = accept(sc, (struct sockaddr *) &cli_addr, &clilen);
 
+            {
+                int option_value = 1; /* Set NOSIGPIPE to ON */
+                if (setsockopt (newsc, SOL_SOCKET, SO_NOSIGPIPE, &option_value, sizeof(option_value)) < 0) {
+                    perror("setsockopt(,,SO_NOSIGPIPE)");
+                }
+            }
+
             if (newsc < 0) {
                 throw WPP::Exception("ERROR on accept");
             }
