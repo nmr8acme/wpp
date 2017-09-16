@@ -492,7 +492,7 @@ namespace WPP {
         socklen_t clilen;
         clilen = sizeof(cli_addr);
         int max_workers = 8;
-        std::atomic<int> current_workers;
+        std::atomic<int> current_workers(0);
 
         while(true) {
             int newsc = accept(sc, (struct sockaddr *) &cli_addr, &clilen);
