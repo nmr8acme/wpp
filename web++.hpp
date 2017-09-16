@@ -472,8 +472,6 @@ namespace WPP {
     void* Server::main_loop(void* arg) {
         int* port = reinterpret_cast<int*>(arg);
 
-        int newsc;
-
         int sc = socket(AF_INET, SOCK_STREAM, 0);
 
         if (sc < 0) {
@@ -493,9 +491,11 @@ namespace WPP {
 
         socklen_t clilen;
         clilen = sizeof(cli_addr);
+        int max_workers = 8;
+        std::atomic<int> current_workers;
 
         while(true) {
-            newsc = accept(sc, (struct sockaddr *) &cli_addr, &clilen);
+            int newsc = accept(sc, (struct sockaddr *) &cli_addr, &clilen);
 
 #if !(__linux__)
             {
@@ -510,47 +510,57 @@ namespace WPP {
                 throw WPP::Exception("ERROR on accept");
             }
 
-            // handle new connection
-            Request req;
-            Response res;
-
-            static char headers[BUFSIZE + 1];
-            long ret = read(newsc, headers, BUFSIZE);
-            if(ret > 0 && ret < BUFSIZE) {
-                headers[ret] = 0;
-            } else {
-                headers[0] = 0;
+            while (current_workers >= max_workers) {
+                usleep(1000);
             }
 
-            this->parse_headers(headers, &req, &res);
+            current_workers++;
 
-            if(!this->match_route(&req, &res)) {
-                res.code = 404;
-                res.phrase = "Not Found";
-                res.type = "text/plain";
-                res.send("Not found");
-            }
+            std::thread worker_thread([newsc, this, &current_workers](){
+                // handle new connection
+                Request req;
+                Response res;
 
-            char header_buffer[BUFSIZE];
-            string body = res.body.str();
-            size_t body_len = body.length();
+                static char headers[BUFSIZE + 1];
+                long ret = read(newsc, headers, BUFSIZE);
+                if(ret > 0 && ret < BUFSIZE) {
+                    headers[ret] = 0;
+                } else {
+                    headers[0] = 0;
+                }
 
-            // build http response
-            sprintf(header_buffer, "HTTP/1.0 %d %s\r\n", res.code, res.phrase.c_str());
+                this->parse_headers(headers, &req, &res);
 
-            // append headers
-            sprintf(&header_buffer[strlen(header_buffer)], "Server: %s %s\r\n", SERVER_NAME, SERVER_VERSION);
-            sprintf(&header_buffer[strlen(header_buffer)], "Date: %s\r\n", res.date.c_str());
-            sprintf(&header_buffer[strlen(header_buffer)], "Content-Type: %s\r\n", res.type.c_str());
-            sprintf(&header_buffer[strlen(header_buffer)], "Content-Length: %zd\r\n", body_len);
+                if(!this->match_route(&req, &res)) {
+                    res.code = 404;
+                    res.phrase = "Not Found";
+                    res.type = "text/plain";
+                    res.send("Not found");
+                }
 
-            // append extra crlf to indicate start of body
-            strcat(header_buffer, "\r\n");
+                char header_buffer[BUFSIZE];
+                string body = res.body.str();
+                size_t body_len = body.length();
 
-            ssize_t t;
-            t = write(newsc, header_buffer, strlen(header_buffer));
-            t = write(newsc, body.c_str(), body_len);
-            close (newsc);
+                // build http response
+                sprintf(header_buffer, "HTTP/1.0 %d %s\r\n", res.code, res.phrase.c_str());
+
+                // append headers
+                sprintf(&header_buffer[strlen(header_buffer)], "Server: %s %s\r\n", SERVER_NAME, SERVER_VERSION);
+                sprintf(&header_buffer[strlen(header_buffer)], "Date: %s\r\n", res.date.c_str());
+                sprintf(&header_buffer[strlen(header_buffer)], "Content-Type: %s\r\n", res.type.c_str());
+                sprintf(&header_buffer[strlen(header_buffer)], "Content-Length: %zd\r\n", body_len);
+
+                // append extra crlf to indicate start of body
+                strcat(header_buffer, "\r\n");
+
+                ssize_t t;
+                t = write(newsc, header_buffer, strlen(header_buffer));
+                t = write(newsc, body.c_str(), body_len);
+                close (newsc);
+                current_workers--;
+            });
+            worker_thread.detach();
         }
     }
 
