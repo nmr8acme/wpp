@@ -292,11 +292,12 @@ namespace WPP {
             void get(regex, string);
             void post(regex, string);
             void all(regex, string);
-            bool start(int, string);
-            bool start(int);
-            bool start();
+            void start(int, string, std::atomic<bool> &stop_flag);
+            void start(int, string);
+            void start(int);
+            void start();
         private:
-            void* main_loop(void*);
+            void main_loop(void*, std::atomic<bool> &stop_flag);
             void parse_headers(char*, Request*, Response*);
             bool match_route(Request*, Response*);
             string trim(string);
@@ -469,7 +470,7 @@ namespace WPP {
         return false;
     }
 
-    void* Server::main_loop(void* arg) {
+    void Server::main_loop(void* arg, std::atomic<bool> &stop_flag) {
         int* port = reinterpret_cast<int*>(arg);
 
         int sc = socket(AF_INET, SOCK_STREAM, 0);
@@ -494,7 +495,15 @@ namespace WPP {
         int max_workers = 8;
         std::atomic<int> current_workers(0);
 
-        while(true) {
+        while(!stop_flag.load(std::memory_order_acquire)) {
+            fd_set read_fds;
+            FD_ZERO(&read_fds);
+            FD_SET(sc, &read_fds);
+            timeval timeout{.tv_sec=0, .tv_usec=100 };
+            auto ready = select(sc+1, &read_fds, nullptr, nullptr, &timeout);
+            if (ready==0) continue;
+            if (ready==-1) abort();
+
             int newsc = accept(sc, (struct sockaddr *) &cli_addr, &clilen);
 
 #if !(__linux__)
@@ -562,9 +571,17 @@ namespace WPP {
             });
             worker_thread.detach();
         }
+
+        //int sc = socket(AF_INET, SOCK_STREAM, 0);
+        //listen(sc, 5);
+        close(sc);
     }
 
-    bool Server::start(int port, string host) {
+    void Server::start(int port, string host, std::atomic<bool> &stop_flag) {
+        this->main_loop(&port, stop_flag);
+    }
+
+    void Server::start(int port, string host) {
 //         pthread_t worker;
 
 //         for(int i = 0; i < 1; ++i) {
@@ -572,16 +589,15 @@ namespace WPP {
 //              assert (rc == 0);
 //         }
 
-        this->main_loop(&port);
-
-        return true;
+        std::atomic<bool> f(false);
+        this->start(port, host, f);
     }
 
-    bool Server::start(int port) {
-         return this->start(port, "0.0.0.0");
+    void Server::start(int port) {
+         this->start(port, "0.0.0.0");
     }
 
-    bool Server::start() {
-         return this->start(80);
+    void Server::start() {
+         this->start(80);
     }
 }
