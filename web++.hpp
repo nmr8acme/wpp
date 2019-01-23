@@ -474,6 +474,9 @@ namespace WPP {
         int* port = reinterpret_cast<int*>(arg);
 
         int sc = socket(AF_INET, SOCK_STREAM, 0);
+        int one = 1;
+        setsockopt(sc, SOL_SOCKET, SO_REUSEADDR,  &one, sizeof(int));
+        setsockopt(sc, SOL_SOCKET, SO_REUSEPORT,  &one, sizeof(int));
 
         if (sc < 0) {
             throw WPP::Exception("ERROR opening socket");
