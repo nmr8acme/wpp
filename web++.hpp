@@ -575,8 +575,6 @@ namespace WPP {
             worker_thread.detach();
         }
 
-        //int sc = socket(AF_INET, SOCK_STREAM, 0);
-        //listen(sc, 5);
         close(sc);
     }
 
