@@ -495,7 +495,7 @@ namespace WPP {
 
         socklen_t clilen;
         clilen = sizeof(cli_addr);
-        int max_workers = 8;
+        int max_workers = std::thread::hardware_concurrency();
         std::atomic<int> current_workers(0);
 
         while(!stop_flag.load(std::memory_order_acquire)) {
