@@ -47,7 +47,8 @@ namespace WPP {
                 // set current date and time for "Date: " header
                 char buffer[100];
                 time_t now = time(0);
-                struct tm tstruct = *gmtime(&now);
+                struct tm tstruct;
+                tstruct = *gmtime_r(&now, &tstruct);
                 strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S %Z", &tstruct);
                 date = buffer;
             }
@@ -533,7 +534,7 @@ namespace WPP {
                 Request req;
                 Response res;
 
-                static char headers[BUFSIZE + 1];
+                char headers[BUFSIZE + 1];
                 long ret = read(newsc, headers, BUFSIZE);
                 if(ret > 0 && ret < BUFSIZE) {
                     headers[ret] = 0;
