@@ -529,7 +529,7 @@ namespace WPP {
 
             current_workers++;
 
-            std::thread worker_thread([newsc, this, &current_workers](){
+            FWThread worker_thread("web++worker", [newsc, this, &current_workers](){
                 // handle new connection
                 Request req;
                 Response res;
