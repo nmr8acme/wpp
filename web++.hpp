@@ -385,8 +385,10 @@ namespace WPP {
                         for(vector<string>::size_type c = 0; c < C1.size(); c++) {
                             vector<string> C2;
                             this->split(C1[c], "=", 2, &C2);
-                            
-                            req->cookies[C2[0]] = C2[1];
+
+                            if (C2.size() == 2) {
+                                req->cookies[C2[0]] = C2[1];
+                            }
                         }
                     }
                 }
@@ -497,6 +499,7 @@ namespace WPP {
         socklen_t clilen;
         clilen = sizeof(cli_addr);
         int max_workers = std::thread::hardware_concurrency();
+        max_workers = 1;
         std::atomic<int> current_workers(0);
 
         while(!stop_flag.load(std::memory_order_acquire)) {
