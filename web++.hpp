@@ -57,6 +57,7 @@ namespace WPP {
             string type;
             string date;
             stringstream body;
+            map<string, string> extra_headers;
         
             void send(string str) {
                body << str;
@@ -566,6 +567,13 @@ namespace WPP {
                 sprintf(&header_buffer[strlen(header_buffer)], "Date: %s\r\n", res.date.c_str());
                 sprintf(&header_buffer[strlen(header_buffer)], "Content-Type: %s\r\n", res.type.c_str());
                 sprintf(&header_buffer[strlen(header_buffer)], "Content-Length: %zd\r\n", body_len);
+
+                for (const auto &header_pair : res.extra_headers) {
+                    const auto &header_name = header_pair.first;
+                    const auto &header_val = header_pair.second;
+                    sprintf(&header_buffer[strlen(header_buffer)], "%s: %s\r\n",
+                            header_name.c_str(), header_val.c_str());
+                }
 
                 // append extra crlf to indicate start of body
                 strcat(header_buffer, "\r\n");
