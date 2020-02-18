@@ -365,6 +365,8 @@ namespace WPP {
 
                         if(Q2.size() == 2) {
                             req->query[Q2[0]] = Q2[1];
+                        } else if(Q2.size() == 1) {
+                            req->query[Q2[0]] = "";
                         }
                     }
 
