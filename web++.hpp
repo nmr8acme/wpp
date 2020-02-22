@@ -11,6 +11,9 @@
 #include <fstream>
 #include <sstream>
 #include <regex>
+#include <thread>
+
+#include "pal/FWThread.h"
 
 #define SERVER_NAME "Web++"
 #define SERVER_VERSION "1.0.1"
